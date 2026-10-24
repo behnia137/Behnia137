@@ -1,0 +1,32 @@
+name: Contribution snake
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+# The repo keeps one branch with one commit: the snake is folded into that commit
+# (amend and force-push) instead of adding a commit or a branch of its own.
+jobs:
+  snake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Platane/snk/svg-only@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/github-snake.svg
+      # BENIBIX's look: a dark panel in both themes, the rainbow for the levels, and a snake
+      # that runs through the rainbow as it moves.
+      - run: python3 scripts/snake-colours.py dist/github-snake.svg && mv dist/github-snake.svg assets/github-snake.svg
+      - name: Fold the snake into the one commit
+        run: |
+          git add assets/github-snake.svg
+          if git diff --cached --quiet; then echo "snake unchanged"; exit 0; fi
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git commit --amend --no-edit --no-verify
+          git push --force origin HEAD:main
